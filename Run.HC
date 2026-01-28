@@ -21,6 +21,9 @@ CDC *menuLogo = GRRead("Sprites/Logo.GR.Z");
 Bool in_menu = TRUE;
 Bool gaming = TRUE;
 
+Bool game_arrow_controls = FALSE;
+Bool game_show_hitboxes = TRUE;
+
 class Keys {
   Bool up,down,left,right,actionA,actionB,actionC,pause;
 };
@@ -359,7 +362,7 @@ U0 EnemyLogic(Enemy *enemy, CDC *dc)
       {
 
 	EnemyShootPatternCircle(enemy);
-	enemy->shootCooldown = 20;
+	enemy->shootCooldown = 30;
       }
 
       if(enemy->shootCooldown > 0)
@@ -694,6 +697,55 @@ I8 OptionsItem = 1;
 
 Bool in_menu_options = FALSE;
 
+U0 MainMenuOptions(CDC *dc)
+{
+  if(OptionsItem < 1)
+  {
+    OptionsItem = 1;
+  }
+
+  if(OptionsItem > 3)
+  {
+    OptionsItem = 3;
+  }
+  I16 OptionsCursorPos = 124;
+  dc->color = DKGRAY;
+  GrRect(dc, 200, 100, 220, 100);
+  dc->color = WHITE;
+
+  switch(OptionsItem) 
+  {
+    case 1: OptionsCursorPos = 124; break;
+    case 2: OptionsCursorPos = 134; break;
+    case 3: OptionsCursorPos = 180; break; 
+  }
+  GrPrint(dc, 210, OptionsCursorPos, ">");
+
+  if(keys.actionB)
+  {
+    switch(OptionsItem)
+    {
+      case 1: game_arrow_controls = !game_arrow_controls; break;
+      case 2: game_show_hitboxes = !game_show_hitboxes; break;
+      case 3: in_menu_options = FALSE; break;
+    }
+    keys.actionB = FALSE;
+  }
+
+  GrPrint(dc, 280, 112, "Options");
+  if(game_arrow_controls) {
+    GrPrint(dc, 230, 124, "[x] Arrow key controls");
+  }else{
+    GrPrint(dc, 230, 124, "[] Arrow key controls");
+  }
+  if(game_show_hitboxes) {
+    GrPrint(dc, 230, 134, "[x] Show hitboxes in  \nfocus mode");
+  }else{
+    GrPrint(dc, 230, 134, "[] Show hitboxes in  \nfocus mode");
+  }
+  GrPrint(dc, 230, 180, "Back to menu");
+}
+
 U0 MainMenuLogic()
 {
   if(keys.actionB)
@@ -702,7 +754,7 @@ U0 MainMenuLogic()
     {
       case 1: in_menu = FALSE; break;
       case 2: in_menu_options = TRUE; break;
-      case 3: gaming = FALSE; break;
+      case 3: gaming = FALSE; break;
     }
     keys.actionB = FALSE;
   }
@@ -713,6 +765,7 @@ U0 DrawMainMenu(CDC *dc)
 {
  
   dc->color = WHITE;
+  GrPrint(dc, 0, 464$WW,1$, "[w] up [s] down (or arrow keys) | [space] confirm ");
 
   if(MenuItem < 1)
   {
@@ -758,6 +811,8 @@ U0 DrawMainMenu(CDC *dc)
     GrPrint(dc, 450, 200, "Play");
     GrPrint(dc, 438, 212, "Options");
     GrPrint(dc, 450, 224, "Exit");
+  }else{
+    MainMenuOptions(dc);
   }
   MainMenuLogic;
 }
@@ -778,10 +833,12 @@ U0 DrawIt(CTask *task, CDC *dc)
  
     WaveLoop;
     dc->color = WHITE;
-    GrPrint(dc, 0, 0, "Enemies: %d\nBullets: %d",immunityTimer,amountOfEBullets);
+    GrPrint(dc, 0, 0,"Enemies:%d\nBullets:%d",immunityTimer,amountOfEBullets);
   
-    DrawColliders(dc);
-
+    if(game_show_hitboxes && slowMode)
+    {
+      DrawColliders(dc);
+    }
 
     // Drawing the player sprite and the immunity logic
     DrawPlayer(dc);
@@ -844,8 +901,15 @@ U0 Main()
             case 'q': keys.actionA = TRUE; break;
 	    case CH_SPACE: keys.actionB = TRUE; break;
             case 0:
-            //switch(arg2.u8[0]) {
-            // }
+            if(game_arrow_controls)
+	    {
+              switch(arg2.u8[0]) {
+	        case SC_CURSOR_UP: keys.up = TRUE; break;
+	        case SC_CURSOR_DOWN: keys.down = TRUE; break;
+	        case SC_CURSOR_LEFT: keys.left = TRUE; break;
+	        case SC_CURSOR_RIGHT: keys.right = TRUE; break;
+              }
+	    }
 	    break;
           }
 	break;
@@ -858,6 +922,17 @@ U0 Main()
 	    case 'd': keys.right = FALSE; break;
 	    case 'q': keys.actionA = FALSE; break;
 	    case CH_SPACE: keys.actionB = FALSE; break;
+	    case 0:
+	    if(game_arrow_controls)
+	    {
+              switch(arg2.u8[0]) {
+	        case SC_CURSOR_UP: keys.up = FALSE; break;
+	        case SC_CURSOR_DOWN: keys.down = FALSE; break;
+	        case SC_CURSOR_LEFT: keys.left = FALSE; break;
+	        case SC_CURSOR_RIGHT: keys.right = FALSE; break;
+              }
+	    }
+	    break;
 	  }
 	break; 
       }
